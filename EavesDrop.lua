@@ -11,20 +11,20 @@
   EavesDrop = LibStub("AceAddon-3.0"):NewAddon("EavesDrop", "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0")
   local EavesDrop = EavesDrop
   local db
-  
+
   local L = LibStub("AceLocale-3.0"):GetLocale("EavesDrop", true)
   local media = LibStub("LibSharedMedia-3.0")
-  
+
   local OUTGOING = 1
   local INCOMING = -1
   local MISC = 3
-  
-  local critchar = "*"  
+
+  local critchar = "*"
   local deathchar = "†"
   local crushchar = "^"
   local glancechar = "~"
   local newhigh = "|cffffff00!|r"
-  
+
   local arrEventData = {}
   local arrEventFrames  = {}
   local frameSize = 21
@@ -40,7 +40,7 @@
   local timeStart = 0
   local curTime = 0
   local lastTime = 0
-  
+
   --LUA calls
   local _G = _G
   local tonumber = tonumber
@@ -57,27 +57,27 @@
       return UNKNOWN
     end
   end
-  
+
   --API calls
   local UnitName = UnitName
   local UnitXP = UnitXP
   local GetSpellInfo = GetSpellInfo
   local GetTime = GetTime
   local InCombatLockdown = InCombatLockdown
-  
+
   --Combat log locals
   local pxp = UnitXP("player")
   local skillmsg = gsub(gsub(gsub(SKILL_RANK_UP, '%d%$', ''), '%%s', '(.+)'), '%%d', '(%%d+)')
   local CombatLog_Object_IsA = CombatLog_Object_IsA
   local Blizzard_CombatLog_CurrentSettings
-  
+
   local COMBATLOG_OBJECT_NONE = COMBATLOG_OBJECT_NONE
   local COMBATLOG_FILTER_MINE = COMBATLOG_FILTER_MINE
   local COMBATLOG_FILTER_MY_PET = COMBATLOG_FILTER_MY_PET
   local COMBATLOG_FILTER_HOSTILE = bit.bor(
               COMBATLOG_FILTER_HOSTILE_PLAYERS,
               COMBATLOG_FILTER_HOSTILE_UNITS)
-  
+
   local COMBAT_EVENTS = {
     ["SWING_DAMAGE"] = "DAMAGE",
     ["RANGE_DAMAGE"] = "DAMAGE",
@@ -103,7 +103,7 @@
     ["UNIT_DIED"] = "DEATH",
     ["UNIT_DESTROYED"] = "DEATH",
   }
-  
+
   local SCHOOL_STRINGS = {
     [SCHOOL_MASK_PHYSICAL] = SPELL_SCHOOL0_CAP,
     [SCHOOL_MASK_HOLY] = SPELL_SCHOOL1_CAP,
@@ -113,7 +113,7 @@
     [SCHOOL_MASK_SHADOW] = SPELL_SCHOOL5_CAP,
     [SCHOOL_MASK_ARCANE] = SPELL_SCHOOL6_CAP,
   }
-  
+
   --[[local POWER_STRINGS = {
     [SPELL_POWER_MANA] = MANA,
     [SPELL_POWER_RAGE] = RAGE,
@@ -134,16 +134,16 @@
     [SPELL_POWER_FURY] = FURY,
     [SPELL_POWER_PAIN] = PAIN,
   }]]
-  
+
   --set table default size sense table.insert no longer does
   for i=1, arrMaxSize do
     arrEventData[i] = {}
   end
-  
+
   local function convertRGBtoHEXString(color, text)
     return string_format("|cFF%02x%02x%02x%s|r", ceil(color.r * 255), ceil(color.g * 255), ceil(color.b * 255), text)
   end
-  
+
   local function shortenValue(value)
     if value >= 10000000 then
       value = string_format("%.1fm", value / 1000000)
@@ -156,11 +156,11 @@
     end
     return value
   end
-  
+
   local function round(num, idp)
     return tonumber(string_format("%." .. (idp or 0) .. "f", num))
   end
-  
+
   local function cleanstring(s)
     s = gsub(s, "|r", "")
     s = gsub(s, "|c........", "")
@@ -177,17 +177,17 @@
      s=s:gsub("[\r\n]+"," ")
     return s
   end
-  
+
   local function clearSummary()
     totDamageIn = 0
     totDamageOut = 0
     totHealingIn = 0
     totHealingOut = 0
   end
-  
+
   --Main Functions
   function EavesDrop:OnInitialize()
-  
+
     --setup table for display frame objects
     for i=1, arrDisplaySize do
       arrEventFrames[i] = {}
@@ -198,26 +198,26 @@
       arrEventFrames[i].outtexture = _G[string_format("EavesDropEvent%dOutgoingTexture", i)]
       arrEventFrames[i].outtextureframe = _G[string_format("EavesDropEvent%dOutgoing", i)]
     end
-  
+
     self.db = LibStub("AceDB-3.0"):New("EavesDropDB", self:GetDefaultConfig())
     self.chardb = LibStub("AceDB-3.0"):New("EavesDropStatsDB", {profile = {[OUTGOING] = {},[INCOMING] = {}}})
-  
+
     self:SetupOptions()
-  
+
     --callbacks for profile changes
     self.db.RegisterCallback(self, "OnProfileChanged", "UpdateFrame")
     self.db.RegisterCallback(self, "OnProfileCopied", "UpdateFrame")
     self.db.RegisterCallback(self, "OnProfileReset", "UpdateFrame")
-  
+
     --local the profile table
     db = self.db.profile
-  
+
     self:PerformDisplayOptions()
-  
-  
+
+
     self:RegisterEvent("ADDON_LOADED", self.SetFonts)
   end
-  
+
   function EavesDrop:OnEnable()
     self:RegisterEvent("PLAYER_DEAD")
     self:UpdateExpEvents()
@@ -226,22 +226,22 @@
     self:UpdateBuffEvents()
     self:UpdateBuffFadeEvents()
     self:UpdateSkillEvents()
-  
+
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED","CombatEvent")
-  
+
     --show frame
     EavesDropFrame:Show()
     if (db["FADEFRAME"]) then
       self:HideFrame()
     end
-  
+
   end
-  
+
   function EavesDrop:OnDisable()
     self:UnregisterAllEvents()
     EavesDropFrame:Hide()
   end
-  
+
   function EavesDrop:UpdateCombatEvents()
     if (db["COMBAT"] == true) then
       self:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -251,7 +251,7 @@
       self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     end
   end
-  
+
   function EavesDrop:UpdateExpEvents()
     if (db["EXP"] == true) then
       self:RegisterEvent("PLAYER_XP_UPDATE")
@@ -259,17 +259,19 @@
       self:UnregisterEvent("PLAYER_XP_UPDATE")
     end
   end
-  
+
   function EavesDrop:UpdateRepHonorEvents()
     if (db["REP"] or db["HONOR"]) then
       self:RegisterEvent("COMBAT_TEXT_UPDATE")
       self:RegisterEvent("CHAT_MSG_COMBAT_HONOR_GAIN")
+      self:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE")
     else
       self:UnregisterEvent("COMBAT_TEXT_UPDATE")
       self:UnregisterEvent("CHAT_MSG_COMBAT_HONOR_GAIN")
+      self:UnregisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE")
     end
   end
-  
+
   function EavesDrop:UpdateBuffEvents()
     if (db["DEBUFF"] == true or db["BUFF"] == true) then
       COMBAT_EVENTS["SPELL_AURA_APPLIED"] = "BUFF"
@@ -285,7 +287,7 @@
       COMBAT_EVENTS["ENCHANT_APPLIED"] = nil
     end
   end
-  
+
   function EavesDrop:UpdateBuffFadeEvents()
     if (db["DEBUFFFADE"] == true or db["BUFFFADE"] == true) then
       COMBAT_EVENTS["SPELL_AURA_REMOVED"] = "FADE"
@@ -301,7 +303,7 @@
       COMBAT_EVENTS["ENCHANT_REMOVED"] = nil
     end
   end
-  
+
   function EavesDrop:UpdateSkillEvents()
     if (db["SKILL"] == true) then
       self:RegisterEvent("CHAT_MSG_SKILL")
@@ -309,7 +311,7 @@
       self:UnregisterEvent("CHAT_MSG_SKILL")
     end
   end
-  
+
   ----------------------
   --Reset everything to default
   function EavesDrop:UpdateFrame()
@@ -324,7 +326,7 @@
     self:PerformDisplayOptions()
     self:UpdateEvents()
   end
-  
+
   function EavesDrop:PerformDisplayOptions()
     --set size
     arrSize = db["NUMLINES"]
@@ -376,22 +378,22 @@
     end
     --position frame (have to schedule cause UI scale is still 1 for some reason during init)
     self:ScheduleTimer("PlaceFrame", .1, self)
-  
+
     self:ResetEvents()
     self:SetupHistory()
-  
+
     if (db["FADEFRAME"]) then
       self:HideFrame()
     else
       self:ShowFrame()
     end
   end
-  
+
   function EavesDrop:SetFonts()
     EavesDropFontNormal:SetFont(media:Fetch("font", db["FONT"]), db["TEXTSIZE"])
     EavesDropFontNormalSmall:SetFont(media:Fetch("font", db["FONT"]), db["TEXTSIZE"])
   end
-  
+
   function EavesDrop:PlaceFrame()
     local frame, x, y = EavesDropFrame, db.x, db.y
     frame:ClearAllPoints()
@@ -402,31 +404,31 @@
       frame:SetPoint("TOPLEFT", UIParent, "CENTER", x/es, y/es)
     end
   end
-  
+
   function EavesDrop:HideFrame()
     EavesDropFrame:SetAlpha(0)
   end
-  
+
   function EavesDrop:ShowFrame()
     EavesDropFrame:SetAlpha(1)
     EavesDropTab:SetAlpha(0)
   end
-  
+
   function EavesDrop:CombatEvent()
     local timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12 = CombatLogGetCurrentEventInfo()
     local etype = COMBAT_EVENTS[event]
     if not etype then return end
-  
+
     if not Blizzard_CombatLog_CurrentSettings then
       Blizzard_CombatLog_CurrentSettings = Blizzard_CombatLog_Filters.filters[Blizzard_CombatLog_Filters.currentFilter]
     end
-  
+
     --check for reflect damage
     if event == "SPELL_DAMAGE" and sourceName == destName and CombatLog_Object_IsA(destFlags, COMBATLOG_FILTER_HOSTILE) then
       self:ParseReflect(timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)
       return
     end
-  
+
     local toPlayer, fromPlayer, toPet, fromPet
     if (sourceName and not CombatLog_Object_IsA(sourceFlags, COMBATLOG_OBJECT_NONE) ) then
       fromPlayer = CombatLog_Object_IsA(sourceFlags, COMBATLOG_FILTER_MINE)
@@ -436,25 +438,25 @@
       toPlayer = CombatLog_Object_IsA(destFlags, COMBATLOG_FILTER_MINE)
       toPet = CombatLog_Object_IsA(destFlags, COMBATLOG_FILTER_MY_PET)
     end
-  
+
     if not fromPlayer and not toPlayer and not fromPet and not toPet then return end
     if (not fromPlayer and not toPlayer) and (toPet or fromPet) and not db["PET"] then return end
-  
+
     local amount, overDamage, school, resisted, blocked, absorbed, critical, glancing, crushing
     local spellId, spellName, spellSchool, missType, powerType, extraAmount, environmentalType, overHeal
     local text, texture, message, inout, color
-  
+
     --defaults
     if toPet or fromPet then texture = "pet" end
     if toPlayer or toPet then inout = INCOMING end
     if fromPlayer or fromPet then inout = OUTGOING end
     if toPet then color = db["PETI"] end
     if fromPet then color = db["PETO"] end
-  
+
     --get combat log message (for tooltip)
     message = CombatLog_OnEvent(Blizzard_CombatLog_CurrentSettings, timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)
-  
-  
+
+
     ------------damage----------------
     if etype == "DAMAGE" then
       local intype, outtype
@@ -481,14 +483,14 @@
         outtype, intype = "TSPELL", "PSPELL"
       end
       text = tostring(shortenValue(amount))
-  
+
       if (critical) then text = critchar..text..critchar end
       if (crushing) then text = crushchar..text..crushchar end
       if (glancing) then text = glancechar..text..glancechar end
       if (resisted) then text = string_format("%s (%d)", text, shortenValue(resisted)) end
       if (blocked) then text = string_format("%s (%d)", text, shortenValue(blocked)) end
       if (absorbed) then text = string_format("%s (%d)", text, shortenValue(absorbed))end
-  
+
       if fromPlayer then
         if (self:TrackStat(inout, "hit", spellName, texture, SCHOOL_STRINGS[school], amount, critical, message)) then
           text = newhigh..text..newhigh
@@ -529,7 +531,7 @@
       spellId, spellName, spellSchool, amount, overHeal, absorbed, critical = a1, a2, a3, a4, a5, a6, a7
       text = tostring(shortenValue(amount))
       texture = select(3, GetSpellInfo(spellName))
-  
+
       if toPlayer then
         totHealingIn = totHealingIn + amount
         if (amount < db["HFILTER"]) then return end
@@ -628,38 +630,54 @@
       --self:Print(event, sourceName, destName)
     end
   end
-  
+
   function EavesDrop:PLAYER_XP_UPDATE()
     local xp = UnitXP("player")
     local xpgained = xp - pxp
     self:DisplayEvent(MISC, string_format("+%d (%s)", shortenValue(xpgained), XP), nil, db["EXPC"], nil)
     pxp = xp
   end
-  
+
   function EavesDrop:COMBAT_TEXT_UPDATE(event, larg1, larg2, larg3)
     if larg1=="FACTION" then
       local sign = "+"
-    if larg2 == nil then 
+    if larg2 == nil then
       larg2 = 0
     end
-    if larg3 == nil then 
+    if larg3 == nil then
       larg3 = 0
       sign = ""
     end
       if (tonumber(larg3) < 0) then sign = "" end
-      self:DisplayEvent(MISC, string_format("%s%d (%s)", sign, larg3, larg2), nil, db["REPC"], nil)
+      --self:DisplayEvent(MISC, string_format("%s%d (%s)", sign, larg3, larg2), nil, db["REPC"], nil)
     elseif larg1=="HONOR_GAINED" then
       --self:DisplayEvent(MISC, string_format("+%d (%s)", larg2, HONOR) , nil, db["HONORC"], nil)
     end
   end
-  
-  function EavesDrop:CHAT_MSG_COMBAT_HONOR_GAIN(event, arg1)
-    if event == "CHAT_MSG_COMBAT_HONOR_GAIN" then
-      local honor = tonumber(string.match(arg1, "%d+"))
-      self:DisplayEvent(MISC, string_format("+%d (%s)", honor, HONOR) , nil, db["HONORC"], nil)
-    end  
+
+  function EavesDrop:CHAT_MSG_COMBAT_FACTION_CHANGE(...)
+    local event, text = ...
+    if event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
+      local rep = tonumber(string.match(text, "%d+"))
+      local sign = ""
+      local faction = string.match(text, "Your (.-) reputation")
+      if string.match(text, "increased") then
+        sign  = "+"
+      else
+        sign = "-"
+      end
+      self:DisplayEvent(MISC, string_format("%s%d (%s)", sign, rep, faction), nil, db["REPC"], text)
+    end
   end
-  
+
+  function EavesDrop:CHAT_MSG_COMBAT_HONOR_GAIN(...)
+    local event, text = ...
+    if event == "CHAT_MSG_COMBAT_HONOR_GAIN" then
+      local honor = tonumber(string.match(text, "%d+"))
+      self:DisplayEvent(MISC, string_format("+%d (%s)", honor, HONOR) , nil, db["HONORC"], text)
+    end
+  end
+
   function EavesDrop:PLAYER_REGEN_DISABLED()
     pxp = UnitXP("player")
     timeStart = GetTime()
@@ -672,7 +690,7 @@
     --flag all as being shown, so buttons appear
     allShown = true
   end
-  
+
   function EavesDrop:PLAYER_REGEN_ENABLED()
     self:DisplayEvent(MISC, L["EndCombat"], nil, db["MISC"])
     if (db["SUMMARY"] == true) then
@@ -686,7 +704,7 @@
                          convertRGBtoHEXString(db["PHEAL"], L["IncomingHeals"]..": "..totHealingIn.." ("..IHPS..")").."\n"..
                          convertRGBtoHEXString(db["THEAL"], L["OutgoingHeals"]..": "..totHealingOut.." ("..HPS..")").."\n"..
                          convertRGBtoHEXString(db["TSPELL"], L["OutgoingDamage"]..": "..totDamageOut.." ("..DPS..")")
-  
+
       self:DisplayEvent(MISC,
                         convertRGBtoHEXString(db["PHIT"], shortenValue(totDamageIn)).." | "..
                         convertRGBtoHEXString(db["PHEAL"], shortenValue(totHealingIn)).." | "..
@@ -698,18 +716,18 @@
     --since out of combat, try and start onupdate to count down frames
     self:StartOnUpdate()
   end
-  
+
   function EavesDrop:PLAYER_DEAD()
     self:DisplayEvent(MISC, deathchar..UnitName("player")..deathchar, nil, db["DEATH"])
   end
-  
+
   function EavesDrop:CHAT_MSG_SKILL(event, larg1)
     local skill, rank = string_match(larg1, skillmsg)
     if skill then
       self:DisplayEvent(MISC, string_format("%s: %d", skill, rank), nil, db["SKILLC"], larg1)
     end
   end
-  
+
   local tempcolor = {r = 1, g = 1, b = 1}
   function EavesDrop:DisplayEvent(type, text, texture, color, message, spellname)
     --remove oldest table and create new display event
@@ -731,7 +749,7 @@
     tinsert(arrEventData, arrMaxSize, pEvent)
     self:UpdateEvents()
   end
-  
+
   function EavesDrop:UpdateEvents()
     local key, value
     local frame, text, intexture, outexture
@@ -809,7 +827,7 @@
     --try to start up onUpdate. if in combat it won't start.
     self:StartOnUpdate()
   end
-  
+
   function EavesDrop:StartOnUpdate()
     --only start on update if not in combat, and not already started.
     if not InCombatLockdown() and not self.OnUpdateStarted then
@@ -817,12 +835,12 @@
       self.OnUpdateStarted = self:ScheduleRepeatingTimer("OnUpdate", .2, self)
     end
   end
-  
+
   function EavesDrop:StopOnUpdate()
     self:CancelTimer(self.OnUpdateStarted, true)
     self.OnUpdateStarted = nil
   end
-  
+
   function EavesDrop:ResetEvents()
     local frame, text, intexture, outexture
     for i=1,arrDisplaySize do
@@ -844,7 +862,7 @@
       outtexture:SetWidth(db["LINEHEIGHT"])
     end
   end
-  
+
   function EavesDrop:OnUpdate()
     local frame
     local count = 0
@@ -885,7 +903,7 @@
       end
     end
   end
-  
+
   function EavesDrop:Scroll(this, dir)
     local self = EavesDrop
     if dir > 0 then
@@ -906,7 +924,7 @@
       end
     end
   end
-  
+
   function EavesDrop:FindCombatUp()
     for i=arrMaxSize-scroll-arrSize, 1, -1 do
       if arrEventData[i].text and arrEventData[i].text == L["StartCombat"] then
@@ -917,7 +935,7 @@
       end
     end
   end
-  
+
   function EavesDrop:FindCombatDown()
     for i=arrMaxSize-scroll+1,arrMaxSize do
       if arrEventData[i].text and arrEventData[i].text == L["EndCombat"] then
@@ -928,19 +946,19 @@
       end
     end
   end
-  
+
   function EavesDrop:ScrollToTop()
     scroll = arrMaxSize-arrSize
     self:UpdateScrollButtons()
     self:UpdateEvents()
   end
-  
+
   function EavesDrop:ScrollToBottom()
     scroll = 0
     self:UpdateScrollButtons()
     self:UpdateEvents()
   end
-  
+
   function EavesDrop:ScrollUp()
     scroll = scroll + 1
     if (scroll > (arrMaxSize-arrSize)) then
@@ -949,7 +967,7 @@
     self:UpdateScrollButtons()
     self:UpdateEvents()
   end
-  
+
   function EavesDrop:ScrollDown()
     scroll = scroll - 1
     if (scroll < 0) then
@@ -958,10 +976,10 @@
     self:UpdateScrollButtons()
     self:UpdateEvents()
   end
-  
+
   function EavesDrop:UpdateScrollButtons()
     if ( not db["SCROLLBUTTON"]) then
-  
+
       if (scroll > 0) then
         EavesDropFrameDownButton:Show()
         if (scroll == arrMaxSize-arrSize) then
@@ -979,7 +997,7 @@
       end
     end
   end
-  
+
   function EavesDrop:SpellColor(option, type)
     if (db["SPELLCOLOR"] == true) then
       return db[type] or option
@@ -987,7 +1005,7 @@
       return option
     end
   end
-  
+
   -------------------------
   --Set last reflection
   function EavesDrop:ParseReflect(timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, ...)
@@ -995,7 +1013,7 @@
     local texture = select(3, GetSpellInfo(spellName))
     local text = amount
     local messsage = CombatLog_OnEvent(Blizzard_CombatLog_CurrentSettings, timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, ...)
-  
+
     --reflected events
     if (self.ReflectTarget == sourceName and sourceName == destName and self.ReflectSkill == spellName) then
       local text = string_format("%s: %d", REFLECT, shortenValue(amount))
@@ -1004,7 +1022,7 @@
       self:ClearReflect()
     end
   end
-  
+
   -------------------------
   --Set last reflection
   function EavesDrop:SetReflect(target, skill)
@@ -1013,14 +1031,14 @@
     --clear reflection after 3 seconds.
     self:ScheduleTimer(self.ClearReflect, 3, self)
   end
-  
+
   -------------------------
   --Clear last reflection
   function EavesDrop:ClearReflect()
     self.ReflectTarget = nil
     self.ReflectSkill = nil
   end
-  
+
   ------------------------------
   ---Shorten a spell/buff
   function EavesDrop:ShortenString(strString)
@@ -1034,7 +1052,7 @@
       return strString
     end
   end
-  
+
   ------------------------------
   ---Send Text to the editbox
   function EavesDrop:SendToChat(text)
@@ -1048,7 +1066,7 @@
         edit_box:Insert(tmptext)
     end
   end
-  
+
   ------------------------------
   ---Show/Hide history frame
   function EavesDrop:ShowHistory()
@@ -1059,4 +1077,3 @@
     end
     PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
   end
-  
